@@ -10,7 +10,7 @@ export default function Home() {
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
-    
+
     const userQuery = input.trim();
     setMessages((prev) => [...prev, { role: 'user', text: userQuery }]);
     setInput('');
@@ -20,47 +20,64 @@ export default function Home() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: userQuery }),
+        body: JSON.stringify({ messages: [{ role: 'user', content: userQuery }] }),
       });
+
       const data = await response.json();
-      
-      if (response.ok) {
-        setMessages((prev) => [...prev, { role: 'ai', text: data.response }]);
+      if (data.reply) {
+        setMessages((prev) => [...prev, { role: 'ai', text: data.reply }]);
       } else {
-        setMessages((prev) => [...prev, { role: 'ai', text: `Error: ${data.detail}` }]);
+        setMessages((prev) => [...prev, { role: 'ai', text: 'Error: No response received.' }]);
       }
-    } catch (err) {
-      setMessages((prev) => [...prev, { role: 'ai', text: 'Unable to connect to the local server.' }]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages((prev) => [...prev, { role: 'ai', text: 'Failed to connect to the AI server.' }]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="flex h-screen items-center justify-center bg-[#1e1e2e] text-[#cdd6f4] p-4">
-      <div className="w-full max-w-xl h-[80vh] bg-[#252538] rounded-xl flex flex-col overflow-hidden shadow-2xl border border-[#45475a]">
-        <div className="bg-[#11111b] p-4 text-center border-b border-[#45475a]">
-          <h1 className="text-lg font-bold text-[#cba6f7]">Personalized AI Workspace</h1>
-          <p className="text-xs text-[#a6adc8] mt-0.5">Next.js Web Interface</p>
-        </div>
-        <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-3">
-          {messages.map((m, i) => (
-            <div key={i} className={`p-3 rounded-xl max-w-[85%] whitespace-pre-wrap text-[0.95rem] ${m.role === 'user' ? 'bg-[#cba6f7] text-[#11111b] self-end font-medium' : 'bg-[#313244] text-[#cdd6f4] self-start border border-[#45475a]'}`}>
-              {m.text}
+    <main className="flex min-h-screen flex-col items-center justify-between p-6 bg-gray-950 text-white">
+      <div className="w-full max-w-2xl bg-gray-900 rounded-xl p-6 shadow-xl border border-gray-800 flex flex-col h-[80vh]">
+        <h1 className="text-xl font-bold text-center text-purple-400 mb-1">Personalized AI Workspace</h1>
+        <p className="text-xs text-gray-400 text-center mb-4">Next.js & Groq Llama 3.3</p>
+
+        {/* Chat Messages Container */}
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-4">
+          {messages.map((msg, index) => (
+            <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[80%] rounded-lg p-3 text-sm ${msg.role === 'user' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-200'}`}>
+                {msg.text}
+              </div>
             </div>
           ))}
-          {loading && <div className="text-xs italic text-[#a6adc8] animate-pulse pl-1">Processing...</div>}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-800 text-gray-400 rounded-lg p-3 text-sm animate-pulse">
+                Thinking...
+              </div>
+            </div>
+          )}
         </div>
-        <div className="p-3 bg-[#11111b] flex gap-2 border-t border-[#45475a]">
+
+        {/* Input Bar */}
+        <div className="flex gap-2">
           <input
             type="text"
-            className="flex-1 bg-[#1e1e2e] border border-[#45475a] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#cba6f7]"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask your companion..."
+            placeholder="Type your message here..."
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
           />
-          <button className="bg-[#cba6f7] text-[#11111b] px-4 py-2 rounded-lg font-bold text-sm" onClick={handleSend}>Send</button>
+          <button
+            onClick={handleSend}
+            disabled={loading}
+            className="bg-purple-600 hover:bg-purple-700 px-5 py-2 rounded-lg font-medium transition disabled:opacity-50"
+          >
+            {loading ? 'Sending...' : 'Send'}
+          </button>
         </div>
       </div>
     </main>
